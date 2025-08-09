@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>เพิ่มสินค้า | Shopee Affiliate</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrapper">
+  <h1>เพิ่มสินค้า</h1>
+  <nav><a href="index.html">← กลับหน้าแรก</a></nav>
+
+  <div class="card">
+    <div class="row">
+      <div><label>ชื่อสินค้า</label><input id="title" class="input" placeholder="เช่น หูฟังไร้สาย ANC"></div>
+      <div><label>ราคา (บาท)</label><input id="price" class="input" type="number" placeholder="1990"></div>
+    </div>
+    <div class="row">
+      <div><label>รูปภาพ (URL)</label><input id="img" class="input" placeholder="https://...jpg"></div>
+      <div><label>ลิงก์ Affiliate (Shopee)</label><input id="aff" class="input" placeholder="https://shopee.co.th/..."></div>
+    </div>
+    <div><label>แบรนด์ (ออปชัน)</label><input id="brand" class="input" placeholder="เช่น Samsung, Xiaomi"></div>
+    <br>
+    <button id="build">สร้างลิงก์หน้า Product</button>
+    <p id="out"></p>
+    <h3>JSON เพื่อนำไปใส่ใน <code>products.json</code></h3>
+    <textarea id="json" rows="6" class="input" readonly></textarea>
+    <small>คัดลอกบล็อก JSON นี้ไปวางเพิ่มในไฟล์ <b>products.json</b> แล้ว commit ได้เลย</small>
+  </div>
+
+  <footer><small>พัฒนาโดย Queue02 ©2025</small></footer>
+</div>
+
+<script>
+const g = id => document.getElementById(id);
+g('build').onclick = () => {
+  const v = ['title','price','img','aff'].reduce((o,k)=>(o[k]=g(k).value.trim(),o),{});
+  const brand = g('brand').value.trim();
+  if(!v.title || !v.price || !v.img || !v.aff){ alert('กรอกให้ครบ: ชื่อ/ราคา/รูป/ลิงก์'); return; }
+
+  const u = new URL(location.origin + location.pathname.replace('add.html','') + 'product.html');
+  Object.entries(v).forEach(([k,val])=>u.searchParams.set(k,val));
+  if(brand) u.searchParams.set('brand',brand);
+
+  g('out').innerHTML = `ลิงก์หน้า Product: <a href="${u}" target="_blank">${u}</a>`;
+  g('json').value = JSON.stringify({ ...v, brand }, null, 2);
+};
+</script>
+</body>
+</html>
