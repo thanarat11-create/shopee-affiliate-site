@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>รวมสินค้าราคาเด็ด | Shopee Affiliate</title>
+<meta name="description" content="หน้า index รวมสินค้าพร้อมช่องค้นหา อัปเดตง่าย ใช้กับ Shopee Affiliate">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div class="wrapper">
+  <h1>รวมสินค้า</h1>
+  <nav>
+    <a href="add.html">+ เพิ่มสินค้า</a>
+    <a href="sitemap.txt">Sitemap (text)</a>
+  </nav>
+
+  <div class="search">
+    <input class="input" id="q" placeholder="ค้นหาชื่อสินค้า…">
+  </div>
+
+  <div class="grid cards" id="list"></div>
+
+  <footer><small>พัฒนาโดย Queue02 ©2025 • Static on GitHub Pages</small></footer>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+async function load(){
+  const res = await fetch('products.json?no-cache='+Date.now());
+  const items = await res.json();
+  const list = $('#list');
+
+  function render(filter=''){
+    list.innerHTML = '';
+    items
+      .filter(x => x.title.toLowerCase().includes(filter.toLowerCase()))
+      .forEach(x=>{
+        const u = new URL(location.origin + location.pathname.replace('index.html','') + 'product.html');
+        // เติมพารามิเตอร์เพื่อ SEO + แสดงผล
+        ['title','price','img','aff'].forEach(k=>u.searchParams.set(k, x[k]));
+        if(x.brand) u.searchParams.set('brand', x.brand);
+        const card = document.createElement('a');
+        card.href = u.toString();
+        card.className='card';
+        card.innerHTML = `
+          <img src="${x.img}" alt="${x.title}">
+          <h3>${x.title}</h3>
+          <div class="row">
+            <span class="badge">฿ ${Number(x.price).toLocaleString()}</span>
+            <span style="text-align:right"><small>คลิกดูรายละเอียด</small></span>
+          </div>`;
+        list.appendChild(card);
+      });
+  }
+
+  $('#q').addEventListener('input', e=>render(e.target.value));
+  render('');
+}
+load();
+</script>
+</body>
+</html>
