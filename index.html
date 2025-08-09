@@ -1,63 +1,163 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="utf-8">
-<title>รวมสินค้าราคาเด็ด | Shopee Affiliate</title>
-<meta name="description" content="หน้า index รวมสินค้าพร้อมช่องค้นหา อัปเดตง่าย ใช้กับ Shopee Affiliate">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="assets/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shopee Affiliate – Auto Page</title>
+  <meta name="description" content="สร้างหน้าโปรโมชั่นจากลิงก์ Shopee แบบอัตโนมัติ" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f7f7fb}
+    .wrap{max-width:920px;margin:40px auto;padding:24px;background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(0,0,0,.06)}
+    h1{margin:0 0 8px}
+    p.hint{color:#666;margin-top:0}
+    .row{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+    input[type=url],input[type=text]{flex:1;min-width:280px;padding:12px 14px;border:1px solid #ddd;border-radius:12px;font-size:16px}
+    button{padding:12px 18px;border:0;border-radius:12px;background:#6C5CE7;color:#fff;font-weight:700;cursor:pointer}
+    button.secondary{background:#eaeaff;color:#4b3fd0}
+    .card{display:flex;gap:18px;margin-top:18px;padding:16px;border:1px solid #eee;border-radius:14px;background:#fafaff}
+    .thumb{width:160px;height:160px;object-fit:cover;border-radius:12px;background:#eee}
+    .meta h3{margin:4px 0 6px}
+    .meta p{margin:0;color:#555}
+    .actions{display:flex;gap:10px;margin-top:14px}
+    .muted{color:#888;font-size:14px}
+    footer{max-width:920px;margin:24px auto 60px;color:#888}
+    .ok{color:#1abc9c;font-weight:700}
+    .err{color:#e74c3c;font-weight:700}
+  </style>
 </head>
 <body>
-<div class="wrapper">
-  <h1>รวมสินค้า</h1>
-  <nav>
-    <a href="add.html">+ เพิ่มสินค้า</a>
-    <a href="sitemap.txt">Sitemap (text)</a>
-  </nav>
+  <div class="wrap">
+    <h1>สร้างหน้าโปรจากลิงก์ Shopee</h1>
+    <p class="hint">แปะลิงก์สินค้า Shopee + (ถ้ามี) พารามิเตอร์ Affiliate ของคุณ แล้วกด “ดึงข้อมูล”</p>
 
-  <div class="search">
-    <input class="input" id="q" placeholder="ค้นหาชื่อสินค้า…">
+    <div class="row">
+      <input id="inputUrl" type="url" placeholder="วางลิงก์สินค้า Shopee ที่นี่" />
+      <input id="affParam" type="text" placeholder="aff_sub / param (ถ้ามี)" />
+      <button id="btnFetch">ดึงข้อมูล</button>
+    </div>
+
+    <div id="status" class="muted"></div>
+    <div id="result"></div>
   </div>
 
-  <div class="grid cards" id="list"></div>
-
-  <footer><small>พัฒนาโดย Queue02 ©2025 • Static on GitHub Pages</small></footer>
-</div>
+  <footer>พัฒนาโดย Queue02 © 2025</footer>
 
 <script>
-const $ = s => document.querySelector(s);
-async function load(){
-  const res = await fetch('products.json?no-cache='+Date.now());
-  const items = await res.json();
-  const list = $('#list');
+  // >>> เปลี่ยนเป็น Worker ของคุณ <<<
+  const WORKER_URL = "https://shopee-scraper.YOUR-ID.workers.dev";
 
-  function render(filter=''){
-    list.innerHTML = '';
-    items
-      .filter(x => x.title.toLowerCase().includes(filter.toLowerCase()))
-      .forEach(x=>{
-        const u = new URL(location.origin + location.pathname.replace('index.html','') + 'product.html');
-        // เติมพารามิเตอร์เพื่อ SEO + แสดงผล
-        ['title','price','img','aff'].forEach(k=>u.searchParams.set(k, x[k]));
-        if(x.brand) u.searchParams.set('brand', x.brand);
-        const card = document.createElement('a');
-        card.href = u.toString();
-        card.className='card';
-        card.innerHTML = `
-          <img src="${x.img}" alt="${x.title}">
-          <h3>${x.title}</h3>
-          <div class="row">
-            <span class="badge">฿ ${Number(x.price).toLocaleString()}</span>
-            <span style="text-align:right"><small>คลิกดูรายละเอียด</small></span>
-          </div>`;
-        list.appendChild(card);
+  const inputUrl = document.getElementById("inputUrl");
+  const affParam = document.getElementById("affParam");
+  const statusEl = document.getElementById("status");
+  const resultEl = document.getElementById("result");
+  const btnFetch = document.getElementById("btnFetch");
+
+  btnFetch.addEventListener("click", async () => {
+    const raw = inputUrl.value.trim();
+    if (!raw) return alert("กรุณาวางลิงก์ Shopee");
+
+    statusEl.textContent = "กำลังดึงข้อมูล…";
+    resultEl.innerHTML = "";
+
+    try {
+      const u = new URL(WORKER_URL);
+      u.searchParams.set("url", raw);
+      const r = await fetch(u.toString());
+      const data = await r.json();
+
+      if (data.error) throw new Error(data.error);
+
+      // แต่ง URL ใส่พารามิเตอร์ aff ถ้ามี
+      let finalUrl = data.url || raw;
+      const a = affParam.value.trim();
+      if (a) {
+        const ru = new URL(finalUrl);
+        ru.searchParams.set("aff_sub", a);
+        finalUrl = ru.toString();
+      }
+
+      statusEl.innerHTML = `<span class="ok">สำเร็จ!</span> เจอข้อมูลจาก Shopee`;
+
+      const htmlCard = `
+        <div class="card">
+          <img class="thumb" src="${data.image || ""}" alt="">
+          <div class="meta">
+            <h3>${escapeHtml(data.title || "ไม่พบชื่อสินค้า")}</h3>
+            <p>${escapeHtml(data.description || "")}</p>
+            <p class="muted">${escapeHtml(data.site || "Shopee")}</p>
+            <div class="actions">
+              <a href="${finalUrl}" target="_blank"><button>ดูสินค้าบน Shopee</button></a>
+              <button class="secondary" id="btnDownload">Download หน้า HTML</button>
+            </div>
+          </div>
+        </div>
+      `;
+      resultEl.innerHTML = htmlCard;
+
+      // ปุ่มดาวน์โหลดไฟล์หน้าเดียว
+      document.getElementById("btnDownload").addEventListener("click", () => {
+        const page = buildProductPage({
+          title: data.title,
+          description: data.description,
+          image: data.image,
+          url: finalUrl
+        });
+        const blob = new Blob([page], { type: "text/html;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = safeFileName((data.title || "shopee-item") + ".html");
+        a.click();
+        URL.revokeObjectURL(a.href);
       });
+
+    } catch (e) {
+      console.error(e);
+      statusEl.innerHTML = `<span class="err">ล้มเหลว:</span> ${e.message || e}`;
+    }
+  });
+
+  function buildProductPage({ title, description, image, url }) {
+    return `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(title)}</title>
+<meta name="description" content="${esc(description || "")}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(description || "")}">
+<meta property="og:image" content="${esc(image || "")}">
+<meta property="og:url" content="${esc(url)}">
+<meta property="og:type" content="product">
+<link rel="canonical" href="${esc(url)}" />
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#f8f9fb}
+  .wrap{max-width:940px;margin:32px auto;padding:20px;background:#fff;border-radius:16px;box-shadow:0 8px 28px rgba(0,0,0,.06)}
+  .hero{display:flex;gap:24px;flex-wrap:wrap}
+  img{width:360px;max-width:100%;border-radius:14px;background:#eee}
+  h1{margin:0 0 12px}
+  p{color:#555}
+  a.btn{display:inline-block;background:#FF4D4F;color:#fff;padding:12px 16px;border-radius:10px;text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <img src="${esc(image || "")}" alt="">
+      <div>
+        <h1>${esc(title)}</h1>
+        <p>${esc(description || "")}</p>
+        <p><a class="btn" href="${esc(url)}" target="_blank" rel="nofollow noopener">ซื้อบน Shopee</a></p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
   }
 
-  $('#q').addEventListener('input', e=>render(e.target.value));
-  render('');
-}
-load();
+  function escapeHtml(s){return (s||"").replace(/[&<>"]/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]))}
+  function esc(s){return escapeHtml(s)}
+  function safeFileName(s){return s.replace(/[\\/:*?"<>|]+/g,"-").slice(0,120)}
 </script>
 </body>
 </html>
