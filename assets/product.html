@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="assets/style.css">
+<title id="t">สินค้า</title>
+
+<!-- dynamic SEO meta จะเติมด้วย JS -->
+<meta property="og:type" content="product">
+<meta name="twitter:card" content="summary_large_image">
+</head>
+<body>
+<div class="wrapper">
+  <nav><a href="index.html">← กลับหน้าแรก</a></nav>
+  <div class="grid" style="grid-template-columns: 1.1fr 1fr; gap:24px;">
+    <div class="card"><img id="img" alt=""></div>
+    <div>
+      <h1 id="title">สินค้า</h1>
+      <div class="row">
+        <span class="badge" id="brand" style="display:none"></span>
+        <span class="badge" id="price"></span>
+      </div>
+      <br>
+      <a id="buy" class="button" target="_blank"><button>ซื้อผ่าน Shopee (Affiliate)</button></a>
+      <p><small>ลิงก์นี้เป็น Affiliate อาจมีค่าคอมฯ โดยไม่เพิ่มราคาที่คุณจ่าย</small></p>
+    </div>
+  </div>
+  <footer><small>Queue02 ©2025</small></footer>
+</div>
+
+<script>
+const p = new URLSearchParams(location.search);
+const title = p.get('title')||'สินค้า';
+const img   = p.get('img')||'';
+const price = p.get('price')||'0';
+const aff   = p.get('aff')||'#';
+const brand = p.get('brand')||'';
+
+document.getElementById('t').textContent = title + ' | ซื้อเลย';
+document.getElementById('title').textContent = title;
+document.getElementById('img').src = img;
+document.getElementById('img').alt = title;
+document.getElementById('price').textContent = '฿ ' + Number(price).toLocaleString();
+document.getElementById('buy').href = aff;
+
+if(brand){ const el = document.getElementById('brand'); el.style.display='inline-block'; el.textContent = brand; }
+
+// เติม meta เพื่อ SEO/แชร์
+function setMeta(name, content, prop=false){
+  const m = document.createElement('meta');
+  if(prop) m.setAttribute('property', name); else m.setAttribute('name', name);
+  m.setAttribute('content', content); document.head.appendChild(m);
+}
+setMeta('description', title+' ราคา ฿'+Number(price).toLocaleString()+' กดซื้อผ่าน Shopee Affiliate');
+setMeta('og:title', title, true);
+setMeta('og:description', 'ราคา ฿'+Number(price).toLocaleString()+' • กดซื้อผ่าน Shopee', true);
+setMeta('og:image', img, true);
+setMeta('twitter:title', title);
+setMeta('twitter:description', 'ราคา ฿'+Number(price).toLocaleString());
+setMeta('twitter:image', img);
+</script>
+</body>
+</html>
